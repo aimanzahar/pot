@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBillAction } from "@/lib/actions";
 import { CURRENCY_OPTIONS, currencySymbol, formatMoney } from "@/lib/format";
@@ -57,6 +57,27 @@ export default function BillForm() {
 
   const customDelta = Math.round((customSum - totalNum) * 100) / 100;
 
+  const qrInputRef = useRef<HTMLInputElement>(null);
+  const [qrPreview, setQrPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (qrPreview) URL.revokeObjectURL(qrPreview);
+    };
+  }, [qrPreview]);
+
+  function handleQrChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (qrPreview) URL.revokeObjectURL(qrPreview);
+    setQrPreview(file ? URL.createObjectURL(file) : null);
+  }
+
+  function clearQr() {
+    if (qrInputRef.current) qrInputRef.current.value = "";
+    if (qrPreview) URL.revokeObjectURL(qrPreview);
+    setQrPreview(null);
+  }
+
   function updateRow(id: string, patch: Partial<Row>) {
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   }
@@ -75,6 +96,7 @@ export default function BillForm() {
     <form
       action={formAction}
       className="flex flex-col gap-6"
+      encType="multipart/form-data"
       noValidate
     >
       {/* Title + description card */}
@@ -291,6 +313,77 @@ export default function BillForm() {
         )}
       </section>
 
+      {/* Payment details */}
+      <section className="card p-5 sm:p-6">
+        <h2 className="font-display text-xl text-ink">
+          How can people pay you?
+        </h2>
+        <p className="mt-1 text-sm text-ink-soft">
+          Optional but strongly recommended. Members can&apos;t guess your
+          DuitNow / bank details.
+        </p>
+
+        <div className="mt-5 flex flex-col gap-4">
+          <Field
+            label="Payment instructions"
+            hint="Bank, DuitNow, Wise — whatever works"
+          >
+            <textarea
+              name="paymentInstructions"
+              rows={3}
+              maxLength={500}
+              placeholder={"DuitNow: 016-1234567 (Aiman)\nMaybank: 5145-1234-5678"}
+            />
+          </Field>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-ink">
+              QR code{" "}
+              <span className="text-xs font-normal text-ink-faint">
+                JPG / PNG / WebP, up to 5 MB
+              </span>
+            </span>
+            <input
+              ref={qrInputRef}
+              type="file"
+              name="paymentQr"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleQrChange}
+              className="hidden"
+              id="bill-form-qr"
+            />
+            <div className="flex items-start gap-3">
+              <label
+                htmlFor="bill-form-qr"
+                className="btn btn-ghost !py-2.5 cursor-pointer !text-sm"
+              >
+                <UploadIcon />
+                {qrPreview ? "Replace QR" : "Choose QR image"}
+              </label>
+              {qrPreview && (
+                <button
+                  type="button"
+                  onClick={clearQr}
+                  className="text-xs text-ink-faint hover:text-terracotta-2 underline decoration-dotted underline-offset-2 self-center"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+            {qrPreview && (
+              <div className="mt-2 inline-flex w-28 sm:w-32 overflow-hidden rounded-xl border border-line bg-white p-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={qrPreview}
+                  alt="QR code preview"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Errors */}
       {state.error && (
         <div className="rounded-2xl border border-terracotta/40 bg-terracotta/10 px-4 py-3 text-sm text-terracotta-2">
@@ -402,6 +495,24 @@ function PlusIcon() {
       aria-hidden
     >
       <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
     </svg>
   );
 }

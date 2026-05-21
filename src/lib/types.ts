@@ -10,6 +10,7 @@ export interface Participant {
   paid: boolean;
   paidAt: string | null;
   paymentNote: string | null;
+  receiptPath: string | null;
   createdAt: string;
 }
 
@@ -22,6 +23,8 @@ export interface Bill {
   splitMode: SplitMode;
   dueDate: string | null;
   organizerName: string | null;
+  paymentInstructions: string | null;
+  paymentQrPath: string | null;
   createdAt: string;
   participants: Participant[];
 }
@@ -38,6 +41,8 @@ export interface CreateBillInput {
   splitMode: SplitMode;
   dueDate?: string | null;
   organizerName?: string;
+  paymentInstructions?: string | null;
+  paymentQrPath?: string | null;
   participants: Array<{ name: string; amount: number }>;
 }
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import QRCode from "qrcode";
 import Pot from "@/components/Pot";
 import ParticipantRow from "@/components/ParticipantRow";
+import PaymentDetailsEditor from "@/components/PaymentDetailsEditor";
 import ShareSheet from "@/components/ShareSheet";
 import SiteHeader from "@/components/SiteHeader";
 import ReminderComposer from "@/components/ReminderComposer";
@@ -14,6 +15,7 @@ import {
   formatMoney,
   formatRelativeTime,
 } from "@/lib/format";
+import { publicUploadUrl } from "@/lib/uploads";
 import { getBaseUrl } from "@/lib/url";
 
 export const metadata = { title: "Dashboard — Pot" };
@@ -149,6 +151,9 @@ export default async function AdminPage({ params, searchParams }: PageProps) {
                       slug={bill.id}
                       mode="admin"
                       token={token}
+                      receiptUrl={
+                        p.receiptPath ? publicUploadUrl(p.receiptPath) : null
+                      }
                     />
                   ))}
                 </ul>
@@ -183,6 +188,15 @@ export default async function AdminPage({ params, searchParams }: PageProps) {
 
           {/* Sidebar */}
           <aside className="flex flex-col gap-4">
+            <PaymentDetailsEditor
+              slug={bill.id}
+              token={token}
+              initialInstructions={bill.paymentInstructions}
+              initialQrUrl={
+                bill.paymentQrPath ? publicUploadUrl(bill.paymentQrPath) : null
+              }
+            />
+
             <ReminderComposer
               unpaid={unpaid}
               billTitle={bill.title}

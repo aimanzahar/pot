@@ -7,9 +7,11 @@ import {
   createBill,
   deleteBill,
   markParticipantPaid,
+  setPaymentInfo,
 } from "./bills";
 import type { CreateBillInput, Currency, SplitMode } from "./types";
 import { CURRENCY_OPTIONS } from "./format";
+import { saveUpload } from "./uploads";
 
 function parseAmount(raw: FormDataEntryValue | null): number {
   if (typeof raw !== "string") return NaN;
@@ -39,6 +41,9 @@ export async function createBillAction(
     splitModeRaw === "custom" ? "custom" : "equal";
   const dueDateRaw = String(formData.get("dueDate") ?? "").trim();
   const organizerName = String(formData.get("organizerName") ?? "").trim();
+  const paymentInstructions = String(
+    formData.get("paymentInstructions") ?? "",
+  ).trim();
   const names = formData.getAll("participantName").map((v) => String(v).trim());
   const amounts = formData
     .getAll("participantAmount")
@@ -83,6 +88,8 @@ export async function createBillAction(
       return { error: "Every custom amount must be greater than 0." };
   }
 
+  const qrPath = await saveUpload(formData.get("paymentQr"), "qr");
+
   const { slug, organizerToken } = createBill({
     title,
     description: description || undefined,
@@ -91,6 +98,8 @@ export async function createBillAction(
     splitMode,
     dueDate: dueDateRaw || null,
     organizerName: organizerName || undefined,
+    paymentInstructions: paymentInstructions || null,
+    paymentQrPath: qrPath,
     participants,
   });
 
@@ -102,7 +111,10 @@ export async function markPaidAction(formData: FormData): Promise<void> {
   const participantId = String(formData.get("participantId") ?? "");
   const note = String(formData.get("note") ?? "").trim() || null;
   if (!slug || !participantId) return;
-  markParticipantPaid(slug, participantId, note);
+
+  const receiptPath = await saveUpload(formData.get("receipt"), "receipts");
+
+  markParticipantPaid(slug, participantId, note, receiptPath);
   revalidatePath(`/b/${slug}`);
   revalidatePath(`/b/${slug}/admin`);
 }
@@ -114,6 +126,27 @@ export async function adminTogglePaidAction(formData: FormData): Promise<void> {
   const paid = String(formData.get("paid") ?? "") === "true";
   if (!slug || !token || !participantId) return;
   adminSetParticipantPaid(slug, token, participantId, paid);
+  revalidatePath(`/b/${slug}`);
+  revalidatePath(`/b/${slug}/admin`);
+}
+
+export async function updatePaymentInfoAction(formData: FormData): Promise<void> {
+  const slug = String(formData.get("slug") ?? "");
+  const token = String(formData.get("token") ?? "");
+  if (!slug || !token) return;
+
+  const instructions = String(formData.get("paymentInstructions") ?? "").trim();
+  const removeQr = String(formData.get("removeQr") ?? "") === "true";
+  const uploadedQr = await saveUpload(formData.get("paymentQr"), "qr");
+
+  // If the user uploaded a new QR, use it. If they ticked "remove", drop it.
+  // Otherwise leave the existing QR untouched.
+  const qrPath = uploadedQr ?? (removeQr ? null : null);
+  const keepExisting = !uploadedQr && !removeQr;
+
+  setPaymentInfo(slug, token, instructions || null, qrPath, {
+    keepExistingQr: keepExisting,
+  });
   revalidatePath(`/b/${slug}`);
   revalidatePath(`/b/${slug}/admin`);
 }

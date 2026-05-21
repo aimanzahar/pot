@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import Pot from "@/components/Pot";
 import ParticipantRow from "@/components/ParticipantRow";
+import PaymentDetailsCard from "@/components/PaymentDetailsCard";
 import ShareSheet from "@/components/ShareSheet";
 import SiteHeader from "@/components/SiteHeader";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { billStats, getBill } from "@/lib/bills";
 import { dueLabel, formatDate, formatMoney } from "@/lib/format";
+import { publicUploadUrl } from "@/lib/uploads";
 import { getBaseUrl } from "@/lib/url";
 
 interface PageProps {
@@ -95,6 +97,17 @@ export default async function PublicBillPage({ params }: PageProps) {
           {stats.paidCount} of {stats.totalCount} chipped in
         </p>
 
+        {/* Payment details (how to pay the organizer) */}
+        <section className="mt-8">
+          <PaymentDetailsCard
+            instructions={bill.paymentInstructions}
+            qrUrl={
+              bill.paymentQrPath ? publicUploadUrl(bill.paymentQrPath) : null
+            }
+            organizerName={bill.organizerName}
+          />
+        </section>
+
         {/* Participants */}
         <section className="mt-8">
           <div className="mb-3 flex items-center justify-between">
@@ -107,7 +120,9 @@ export default async function PublicBillPage({ params }: PageProps) {
             {bill.participants.map((p) => (
               <ParticipantRow
                 key={p.id}
-                participant={p}
+                // Strip receiptPath — receipts are host-only and would
+                // otherwise leak through the RSC payload to the client.
+                participant={{ ...p, receiptPath: null }}
                 currency={bill.currency}
                 slug={bill.id}
                 mode="public"

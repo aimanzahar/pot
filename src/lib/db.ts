@@ -46,4 +46,31 @@ function migrate(d: Database.Database) {
 
     CREATE INDEX IF NOT EXISTS idx_participants_bill ON participants(bill_id);
   `);
+
+  // v2: payment instructions + QR + receipt uploads. Each column is added
+  // only if it doesn't already exist, so re-running on an upgraded db is a
+  // no-op.
+  ensureColumn(d, "bills", "payment_instructions", "TEXT");
+  ensureColumn(d, "bills", "payment_qr_path", "TEXT");
+  ensureColumn(d, "participants", "receipt_path", "TEXT");
+}
+
+interface PragmaColumn {
+  cid: number;
+  name: string;
+  type: string;
+  notnull: number;
+  dflt_value: unknown;
+  pk: number;
+}
+
+function ensureColumn(
+  d: Database.Database,
+  table: string,
+  column: string,
+  decl: string,
+) {
+  const cols = d.prepare(`PRAGMA table_info(${table})`).all() as PragmaColumn[];
+  if (cols.some((c) => c.name === column)) return;
+  d.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${decl};`);
 }

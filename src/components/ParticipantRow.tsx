@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Currency, Participant } from "@/lib/types";
 import { formatMoney, formatRelativeTime } from "@/lib/format";
 import { markPaidAction, adminTogglePaidAction } from "@/lib/actions";
+import ReceiptThumb from "./ReceiptThumb";
 
 interface BaseProps {
   participant: Participant;
@@ -19,6 +20,8 @@ interface PublicProps extends BaseProps {
 interface AdminProps extends BaseProps {
   mode: "admin";
   token: string;
+  /** Absolute or basePath-prefixed URL for the participant's receipt image. */
+  receiptUrl?: string | null;
 }
 
 type Props = PublicProps | AdminProps;
@@ -28,6 +31,26 @@ export default function ParticipantRow(props: Props) {
   const [pending, setPending] = useState(false);
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const receiptInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (receiptPreview) URL.revokeObjectURL(receiptPreview);
+    };
+  }, [receiptPreview]);
+
+  function handleReceiptChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (receiptPreview) URL.revokeObjectURL(receiptPreview);
+    setReceiptPreview(file ? URL.createObjectURL(file) : null);
+  }
+
+  function clearReceipt() {
+    if (receiptInputRef.current) receiptInputRef.current.value = "";
+    if (receiptPreview) URL.revokeObjectURL(receiptPreview);
+    setReceiptPreview(null);
+  }
 
   async function publicConfirm() {
     setPending(true);
@@ -35,9 +58,13 @@ export default function ParticipantRow(props: Props) {
     fd.set("slug", slug);
     fd.set("participantId", p.id);
     fd.set("note", note);
+    const file = receiptInputRef.current?.files?.[0];
+    if (file) fd.set("receipt", file);
     await markPaidAction(fd);
     setPending(false);
     setOpen(false);
+    clearReceipt();
+    setNote("");
   }
 
   async function adminToggle() {
@@ -95,6 +122,15 @@ export default function ParticipantRow(props: Props) {
             {formatMoney(p.amount, currency)}
           </p>
         </div>
+
+        {/* Receipt thumb (admin only, when present) */}
+        {props.mode === "admin" && p.paid && props.receiptUrl && (
+          <ReceiptThumb
+            url={props.receiptUrl}
+            alt={`Receipt from ${p.name}`}
+            size="sm"
+          />
+        )}
 
         {/* Action */}
         {props.mode === "public" ? (
@@ -161,7 +197,50 @@ export default function ParticipantRow(props: Props) {
                 placeholder="Optional note (e.g. paid via DuitNow)"
                 maxLength={120}
               />
-              <div className="mt-2.5 flex justify-end gap-2">
+
+              {/* Receipt upload */}
+              <div className="mt-2.5">
+                <input
+                  ref={receiptInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  capture="environment"
+                  onChange={handleReceiptChange}
+                  className="hidden"
+                  id={`receipt-${p.id}`}
+                />
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor={`receipt-${p.id}`}
+                    className="btn btn-ghost !py-1.5 !px-3 !text-xs cursor-pointer"
+                  >
+                    <PaperclipIcon />
+                    {receiptPreview ? "Replace receipt" : "Attach receipt"}
+                  </label>
+                  <span className="text-[11px] text-ink-faint">
+                    optional · only the organizer sees it
+                  </span>
+                </div>
+                {receiptPreview && (
+                  <div className="mt-2 inline-flex items-start gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={receiptPreview}
+                      alt="Receipt preview"
+                      className="h-16 w-16 rounded-lg border border-line object-cover bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={clearReceipt}
+                      className="text-[11px] text-ink-faint hover:text-terracotta-2 underline decoration-dotted underline-offset-2"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
@@ -245,6 +324,24 @@ function CheckIcon() {
       aria-hidden
     >
       <path d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
+function PaperclipIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
     </svg>
   );
 }
