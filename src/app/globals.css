@@ -1,0 +1,343 @@
+@import "tailwindcss";
+
+/* === Pot — color tokens =========================================== */
+:root {
+  /* Surfaces */
+  --cream: #f8f1e5;
+  --cream-2: #f1e7d3;
+  --paper: #fbf6ec;
+  --line: #e9dcc4;
+
+  /* Brand */
+  --terracotta: #c5553d;
+  --terracotta-2: #a64530;
+  --terracotta-soft: #ecbfb1;
+  --amber: #e69a52;
+
+  /* Status */
+  --sage: #7a8b6f;
+  --sage-soft: #cdd7c3;
+  --sage-deep: #4f5e47;
+
+  /* Ink */
+  --ink: #3e2c23;
+  --ink-soft: #6f5a4d;
+  --ink-faint: #a8957f;
+
+  /* Semantic */
+  --background: var(--cream);
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --border: var(--line);
+  --muted: var(--ink-soft);
+
+  /* Effects */
+  --shadow-soft: 0 1px 2px rgba(62, 44, 35, 0.05),
+    0 10px 30px -12px rgba(62, 44, 35, 0.12);
+  --shadow-pop: 0 2px 4px rgba(62, 44, 35, 0.08),
+    0 24px 48px -16px rgba(197, 85, 61, 0.25);
+  --glow-warm: 0 0 60px rgba(230, 154, 82, 0.45);
+}
+
+:root.dark {
+  --cream: #1a1310;
+  --cream-2: #221915;
+  --paper: #211711;
+  --line: #382820;
+
+  --terracotta: #d9684d;
+  --terracotta-2: #b85339;
+  --terracotta-soft: #4a2c22;
+  --amber: #efaa66;
+
+  --sage: #9bad8e;
+  --sage-soft: #2e3a2a;
+  --sage-deep: #c6d4ba;
+
+  --ink: #f4e4c8;
+  --ink-soft: #c4ad8c;
+  --ink-faint: #7a6650;
+
+  --background: #150f0c;
+  --foreground: var(--ink);
+  --card: #1f1612;
+  --border: var(--line);
+  --muted: var(--ink-soft);
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 2px 4px rgba(0, 0, 0, 0.4),
+    0 24px 48px -16px rgba(217, 104, 77, 0.3);
+  --glow-warm: 0 0 60px rgba(239, 170, 102, 0.35);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-cream: var(--cream);
+  --color-cream-2: var(--cream-2);
+  --color-paper: var(--paper);
+  --color-line: var(--line);
+  --color-terracotta: var(--terracotta);
+  --color-terracotta-2: var(--terracotta-2);
+  --color-terracotta-soft: var(--terracotta-soft);
+  --color-amber: var(--amber);
+  --color-sage: var(--sage);
+  --color-sage-soft: var(--sage-soft);
+  --color-sage-deep: var(--sage-deep);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  background: var(--background);
+  color: var(--foreground);
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle paper grain — adds tactility without overwhelming */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(
+      circle at 20% 10%,
+      rgba(230, 154, 82, 0.08),
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 90% 80%,
+      rgba(197, 85, 61, 0.06),
+      transparent 50%
+    );
+}
+
+main, header, footer {
+  position: relative;
+  z-index: 1;
+}
+
+::selection {
+  background: var(--terracotta);
+  color: var(--cream);
+}
+
+/* Form input baseline */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="email"],
+textarea,
+select {
+  appearance: none;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.7rem 0.9rem;
+  font-size: 1rem;
+  font-family: inherit;
+  width: 100%;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--terracotta);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--terracotta) 18%, transparent);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-faint);
+}
+
+input[type="date"] {
+  color-scheme: light;
+}
+
+html.dark input[type="date"] {
+  color-scheme: dark;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.1rem;
+  font-weight: 600;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  font-size: 0.95rem;
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    box-shadow 160ms ease,
+    border-color 120ms ease;
+  cursor: pointer;
+  user-select: none;
+  line-height: 1;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background: var(--terracotta);
+  color: var(--cream);
+  box-shadow: var(--shadow-pop);
+}
+.btn-primary:hover {
+  background: var(--terracotta-2);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--border);
+}
+.btn-ghost:hover {
+  background: var(--cream-2);
+}
+
+.btn-sage {
+  background: var(--sage);
+  color: var(--cream);
+}
+.btn-sage:hover {
+  background: var(--sage-deep);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-soft);
+}
+
+/* Chips */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  background: var(--cream-2);
+  color: var(--ink-soft);
+  border: 1px solid var(--border);
+}
+
+.chip-paid {
+  background: color-mix(in srgb, var(--sage) 14%, transparent);
+  color: var(--sage-deep);
+  border-color: color-mix(in srgb, var(--sage) 35%, transparent);
+}
+
+.chip-unpaid {
+  background: color-mix(in srgb, var(--terracotta) 10%, transparent);
+  color: var(--terracotta-2);
+  border-color: color-mix(in srgb, var(--terracotta) 30%, transparent);
+}
+
+.chip-overdue {
+  background: color-mix(in srgb, var(--terracotta) 20%, transparent);
+  color: var(--terracotta-2);
+  border-color: color-mix(in srgb, var(--terracotta) 50%, transparent);
+}
+
+/* Subtle decorative dotted divider */
+.dotted-divider {
+  height: 1px;
+  background-image: radial-gradient(
+    circle,
+    var(--ink-faint) 1px,
+    transparent 1px
+  );
+  background-size: 6px 6px;
+  background-repeat: repeat-x;
+  background-position: center;
+  opacity: 0.55;
+}
+
+/* Tabular numerals for amounts */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Hide the default number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+@keyframes pot-wave {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes pot-shimmer {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes ripple {
+  0% { transform: scale(0); opacity: 0.55; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+@keyframes float-up {
+  0% { transform: translateY(8px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.animate-float-up {
+  animation: float-up 320ms ease-out both;
+}

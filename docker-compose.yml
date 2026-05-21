@@ -1,0 +1,59 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        # Path prefix the app is served under (e.g. /bill). Baked at build
+        # time because Next.js' basePath is a compile-time setting.
+        NEXT_PUBLIC_BASE_PATH: "${NEXT_PUBLIC_BASE_PATH:-}"
+    container_name: pot-app
+    restart: unless-stopped
+    environment:
+      # When set, share links always use this origin (even if the form was
+      # submitted via http://localhost:8080). Leave unset for local dev.
+      PUBLIC_APP_URL: "${PUBLIC_APP_URL:-}"
+    volumes:
+      - ./data:/app/data
+    ports:
+      # Local access (separate from Pinggy). Use http://localhost:8080
+      - "127.0.0.1:8080:80"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "require('http').get('http://127.0.0.1:80/', r =>
+          process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () =>
+          process.exit(1))"
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 5s
+
+  pinggy:
+    # Plain OpenSSH client. The official `pinggy/pinggy` image wraps ssh
+    # in a TUI which can interfere with the response stream — using raw
+    # ssh is more reliable.
+    build:
+      context: .
+      dockerfile: Dockerfile.pinggy
+    container_name: pot-pinggy
+    restart: unless-stopped
+    # Share the app container's network namespace so 127.0.0.1:80 in this
+    # container resolves to the Next.js server inside `app`.
+    network_mode: "service:app"
+    depends_on:
+      app:
+        condition: service_healthy
+    tty: true
+    stdin_open: true
+    command:
+      - "-p"
+      - "443"
+      - "-R0:127.0.0.1:80"
+      - "-o"
+      - "StrictHostKeyChecking=no"
+      - "-o"
+      - "ServerAliveInterval=30"
+      - "-o"
+      - "ExitOnForwardFailure=yes"
+      - "${PINGGY_TOKEN}@pro.pinggy.io"
