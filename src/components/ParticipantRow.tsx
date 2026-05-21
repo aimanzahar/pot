@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Currency, Participant } from "@/lib/types";
-import { formatMoney, formatRelativeTime } from "@/lib/format";
+import { formatDate, formatMoney, formatRelativeTime } from "@/lib/format";
 import { markPaidAction, adminTogglePaidAction } from "@/lib/actions";
-import ReceiptThumb from "./ReceiptThumb";
+import ImageLightbox from "./ImageLightbox";
 
 interface BaseProps {
   participant: Participant;
@@ -30,9 +30,14 @@ export default function ParticipantRow(props: Props) {
   const { participant: p, currency, slug } = props;
   const [pending, setPending] = useState(false);
   const [open, setOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [note, setNote] = useState("");
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const receiptInputRef = useRef<HTMLInputElement>(null);
+
+  const adminReceiptUrl =
+    props.mode === "admin" && p.paid ? props.receiptUrl ?? null : null;
 
   useEffect(() => {
     return () => {
@@ -123,13 +128,24 @@ export default function ParticipantRow(props: Props) {
           </p>
         </div>
 
-        {/* Receipt thumb (admin only, when present) */}
-        {props.mode === "admin" && p.paid && props.receiptUrl && (
-          <ReceiptThumb
-            url={props.receiptUrl}
-            alt={`Receipt from ${p.name}`}
-            size="sm"
-          />
+        {/* Details expand toggle (admin + paid only) */}
+        {props.mode === "admin" && p.paid && (
+          <button
+            type="button"
+            onClick={() => setDetailsOpen((v) => !v)}
+            aria-expanded={detailsOpen}
+            aria-label={detailsOpen ? "Hide details" : "View details"}
+            title="View details"
+            className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-line bg-cream-2/60 text-ink-soft transition hover:bg-cream-2 hover:text-ink"
+          >
+            <motion.span
+              animate={{ rotate: detailsOpen ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="inline-flex"
+            >
+              <ChevronDownIcon />
+            </motion.span>
+          </button>
         )}
 
         {/* Action */}
@@ -171,6 +187,91 @@ export default function ParticipantRow(props: Props) {
           </button>
         )}
       </div>
+
+      {/* Admin details panel (paid only) */}
+      <AnimatePresence initial={false}>
+        {props.mode === "admin" && p.paid && detailsOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            className="overflow-hidden border-t border-line bg-cream-2/40"
+          >
+            <div className="grid gap-3 px-4 py-3.5 sm:grid-cols-[auto_1fr]">
+              {/* Receipt */}
+              <div className="flex flex-col items-start gap-1.5">
+                <span className="text-[10px] uppercase tracking-wider text-ink-faint">
+                  Receipt
+                </span>
+                {adminReceiptUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setLightboxOpen(true)}
+                    className="group relative overflow-hidden rounded-xl border border-line bg-white p-1.5 transition hover:shadow-[var(--shadow-pop)]"
+                    aria-label="Open full-size receipt"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={adminReceiptUrl}
+                      alt={`Receipt from ${p.name}`}
+                      className="h-28 w-28 object-cover sm:h-32 sm:w-32"
+                      loading="lazy"
+                    />
+                    <span className="pointer-events-none absolute inset-x-1.5 bottom-1.5 rounded-md bg-ink/70 px-1.5 py-0.5 text-center text-[10px] font-medium text-cream opacity-0 transition group-hover:opacity-100">
+                      Tap to enlarge
+                    </span>
+                  </button>
+                ) : (
+                  <div className="flex h-28 w-28 items-center justify-center rounded-xl border border-dashed border-line bg-cream-2/60 px-2 text-center text-[11px] text-ink-faint sm:h-32 sm:w-32">
+                    No receipt attached
+                  </div>
+                )}
+              </div>
+
+              {/* Meta */}
+              <div className="flex flex-col gap-2 min-w-0">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-ink-faint">
+                    Note
+                  </p>
+                  {p.paymentNote ? (
+                    <p className="text-sm text-ink">{p.paymentNote}</p>
+                  ) : (
+                    <p className="text-sm italic text-ink-faint">No note</p>
+                  )}
+                </div>
+                {p.paidAt && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-ink-faint">
+                      Paid
+                    </p>
+                    <p className="text-sm text-ink-soft">
+                      {formatDate(p.paidAt)} ·{" "}
+                      <span className="text-ink-faint">
+                        {formatRelativeTime(p.paidAt)}
+                      </span>
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-ink-faint">
+                    Amount
+                  </p>
+                  <p className="font-display tabular text-base text-ink">
+                    {formatMoney(p.amount, currency)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <ImageLightbox
+              src={lightboxOpen ? adminReceiptUrl : null}
+              alt={`Receipt from ${p.name}`}
+              onClose={() => setLightboxOpen(false)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Public confirm panel */}
       <AnimatePresence initial={false}>
@@ -342,6 +443,24 @@ function PaperclipIcon() {
       aria-hidden
     >
       <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M6 9l6 6 6-6" />
     </svg>
   );
 }
